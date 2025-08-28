@@ -1,4 +1,0 @@
-John	32
-Adam	81
-Nancy	19
-Mary	53
