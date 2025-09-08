@@ -6,10 +6,11 @@ column_names = ["age", "workclass", "fnlwgt", "education", "education-num", "mar
 """
 Problem 1: File Handling (2 Points)
 """
+#Limited to 20 lines for readability
 print(f"\n{"=" * 50}\nProblem 1: File Handling\n")
 with open("adult-1.data", "r") as f:
-    for line in f:
-        print(line.rstrip())
+    for i in range(20):
+        print(f.readline().rstrip())
 
 """
 Problem 2: Pandas Data Frames (2 Points)
@@ -80,14 +81,53 @@ for column in df.columns:
 
 """
 Problem 5: Simple Dataset File Processing (8 Points)
-For the google play dataset, find the following:
-
-The rating distribution of different apps. That is, how many apps have an average rating in the range [1,2), [2,3), [3,4) and [4,5]. Notice the inclusive/exclusive brackets. (2 points)
-Repeat the exercise above to show the rating distributions within each year. (3 points)
-Find the number of apps with android version 1&up, 2&up, 3&up, 4&up and the number of apps whose android version varies with the device. (3 points)
 """
 print(f"\n{"=" * 50}\nProblem 5: Simple Dataset File Processing\n")
 
 bins = [1, 2, 3, 4, 5]
 labels = ['[1,2)', '[2,3)', '[3,4)', '[4,5]']
 print(pd.cut(df['Rating'], bins=bins, labels=labels, right=False).value_counts())
+
+# Extract year from 'Last Updated' column
+df['Year'] = pd.to_datetime(df['Last Updated'], format='%d-%b-%y', errors='coerce').dt.year
+
+# Group by year and apply rating binning
+yearly_rating_dist = df.groupby('Year')['Rating'].apply(
+    lambda x: pd.cut(x, bins=bins, labels=labels, right=False).value_counts()
+).unstack(fill_value=0)
+
+print("\nRating distribution within each year:")
+print(yearly_rating_dist)
+
+# Function to categorize Android version requirements
+def categorize_version(version_str):
+    if pd.isna(version_str) or version_str == 'NaN':
+        return 'Unknown'
+
+    version_str = str(version_str).strip()
+
+    if 'Varies with device' in version_str:
+        return 'Varies with device'
+
+    # Extract the major version number
+    if ' and up' in version_str:
+        # Extract the number before ' and up'
+        version_part = version_str.split(' and up')[0]
+        try:
+            # Handle versions like "4.0.3", "2.3.3", etc.
+            major_version = int(float(version_part.split('.')[0]))
+            return f'{major_version} & up'
+        except:
+            return 'Unknown'
+
+    return 'Unknown'
+
+
+# Apply categorization
+df['Android_Category'] = df['Android Ver'].apply(categorize_version)
+
+# Count apps by Android version category
+android_counts = df['Android_Category'].value_counts()
+
+print("\nAndroid Version Requirements:")
+print(android_counts)
